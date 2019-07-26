@@ -320,7 +320,7 @@ static int pushline (lua_State *L, int firstline) {
     lua_pushfstring(L, "return %s", b + 1);  /* change '=' to 'return' */
   else
     lua_pushlstring(L, b, l);
-  lua_freeline(L, b);
+  lua_freeline(L, b);	//freeline与readline要配对使用，因为在linux和macosx系统下readline会在用户层申请内存，那就得手动释放它
   return 1;
 }
 
