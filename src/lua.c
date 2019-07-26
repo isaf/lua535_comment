@@ -44,13 +44,15 @@
 /*
 ** lua_stdin_is_tty detects whether the standard input is a 'tty' (that
 ** is, whether we're running lua interactively).
+** 注解：tty是teletype的缩写，表示终端设备的类型。终端是指一种字符型设备，可以理解为允许用户输入的设备。
+**		 宏lua_stdin_is_tty就是用来判断当前标准输入是不是来源于终端，是的话才可以输入内容进入交互模式。
 */
 #if !defined(lua_stdin_is_tty)	/* { */
 
 #if defined(LUA_USE_POSIX)	/* { */
 
 #include <unistd.h>
-#define lua_stdin_is_tty()	isatty(0)
+#define lua_stdin_is_tty()	isatty(0)	//注解：这里0是文件描述符ID，指的是标准输入。这里为什么不用宏呢？难道posix没有定义这个？
 
 #elif defined(LUA_USE_WINDOWS)	/* }{ */
 
@@ -76,13 +78,13 @@
 ** lua_freeline defines how to free a line read by lua_readline.
 */
 #if !defined(lua_readline)	/* { */
-
+//注解：readline在linux和macosx下经常用来实现控制台命令的输入。
 #if defined(LUA_USE_READLINE)	/* { */
 
-#include <readline/readline.h>
+#include <readline/readline.h>	//注解：readline这个库是lua中唯一依赖的外部库，其实也只有lua解释器才用到这个。所以在linux和macosx下编译lua解释器需要安装readline（有些linux发行版可能会自带）
 #include <readline/history.h>
 #define lua_readline(L,b,p)	((void)L, ((b)=readline(p)) != NULL)
-#define lua_saveline(L,line)	((void)L, add_history(line))
+#define lua_saveline(L,line)	((void)L, add_history(line))	//注解：add history的作用是保存输入历史，可以用方向键来选择历史输入
 #define lua_freeline(L,b)	((void)L, free(b))
 
 #else				/* }{ */
@@ -223,6 +225,21 @@ static void print_version (void) {
 ** other arguments (before the script name) go to negative indices.
 ** If there is no script name, assume interpreter's name as base.
 */
+/*
+注解：这里在lua的全局表中创建一个arg的变量，它包含了启动lua解释器时的所有参数信息。
+	 其中arg[0]是执行的脚本名。脚本的输入参数按照顺序保存在arg的正数索引中。
+	 启动lua解释器的参数也是按顺序保存在arg的负数索引中。
+	 从最小的索引看起，arg中的数据顺序与启动lua解释器时输入的参数顺序是一致的。
+	 比如lua -i main.lua 1 2。对应的arg为：
+	 arg =
+	 {
+		[-2] = 'lua',
+		[-1] = '-i',
+		[0] = 'main.lua'
+		[1] = '1',
+		[2] = '2',
+	 }
+*/
 static void createargtable (lua_State *L, char **argv, int argc, int script) {
   int i, narg;
   if (script == argc) script = 0;  /* no script name? */
@@ -279,6 +296,11 @@ static const char *get_prompt (lua_State *L, int firstline) {
 }
 
 /* mark in error messages for incomplete statements */
+/*
+注解：eof就是end of file的意思。如果错误信息是以<eof>结尾的，则说明该语法错误的位置是在文件的最末端，交互模式下则表示错误位置在最后输入处。
+	这种情况一般是因为输入不全造成的语句不完整（比如for语句没写全），那么在交互模式下应该识别（调用下面的incomplete函数来判断）出这种类型的语法错误，
+	进入多行输入模式，允许用户继续输入。
+*/
 #define EOFMARK		"<eof>"
 #define marklen		(sizeof(EOFMARK)/sizeof(char) - 1)
 
@@ -320,7 +342,7 @@ static int pushline (lua_State *L, int firstline) {
     lua_pushfstring(L, "return %s", b + 1);  /* change '=' to 'return' */
   else
     lua_pushlstring(L, b, l);
-  lua_freeline(L, b);	//freeline与readline要配对使用，因为在linux和macosx系统下readline会在用户层申请内存，那就得手动释放它
+  lua_freeline(L, b);	//注解：freeline与readline要配对使用，因为在linux和macosx系统下readline会在用户层申请内存，那就得手动释放它
   return 1;
 }
 
@@ -328,6 +350,13 @@ static int pushline (lua_State *L, int firstline) {
 /*
 ** Try to compile line on the stack as 'return <line>;'; on return, stack
 ** has either compiled chunk or original line (if compilation failed).
+*/
+/*
+注解：用return语句来检查输入的内容是否符合表达式列表的语法。是的话就打印表达式的结果。
+	比如输入1+3，加上return就是return 1+3，符合语法，那接下来就可以直接计算这个表达式列表并输出它的结果。
+	如果输入a=3，加上return就是return a=3，不符合语法，那接下来就会判断a=3是否符合语法，是的话就执行它，
+	否则再看a=3是不是一个不完整的语句，是的话进入多行模式，否则报错。
+	注意：1+3这种写法只在交互模式下有效，只是为了方便你打印表达式的结果。
 */
 static int addreturn (lua_State *L) {
   const char *line = lua_tostring(L, -1);  /* original line */
@@ -346,6 +375,11 @@ static int addreturn (lua_State *L) {
 
 /*
 ** Read multiple lines until a complete Lua statement
+*/
+/*
+注解：等待一个完整的语句输入完毕。
+	先用loadbuffer看下当前的输入是否符合语法，是的话就返回去执行它。
+	否则判断是否是eof错误，是则调用pushline等待继续输入，否则向上层调用报错。
 */
 static int multiline (lua_State *L) {
   for (;;) {  /* repeat until gets a complete statement */
@@ -420,6 +454,9 @@ static void doREPL (lua_State *L) {
 
 /*
 ** Push on the stack the contents of table 'arg' from 1 to #arg
+*/
+/*
+注解：把脚本的输入参数压栈，这样在脚本中就可以通过...表达式来获取它们。
 */
 static int pushargs (lua_State *L) {
   int i, n;

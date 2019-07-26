@@ -231,7 +231,7 @@ LUALIB_API void (luaL_openlib) (lua_State *L, const char *libname,
 /* print an error message */
 #if !defined(lua_writestringerror)
 #define lua_writestringerror(s,p) \
-        (fprintf(stderr, (s), (p)), fflush(stderr))
+        (fprintf(stderr, (s), (p)), fflush(stderr))	//注解：stderr本来就不会缓冲，是立刻输出的，为什么这里还要flush一下呢？可能是错误信息需要用缓冲区的信息来辅助说明吧。不管什么情况，flush再说。
 #endif
 
 /* }================================================================== */
