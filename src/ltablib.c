@@ -53,7 +53,7 @@ static void checktab (lua_State *L, int arg, int what) {
       lua_pop(L, n);  /* pop metatable and tested metamethods */
     }
     else
-      luaL_checktype(L, arg, LUA_TTABLE);  /* force an error */
+      luaL_checktype(L, arg, LUA_TTABLE);  /* force an error */	/* 这一句是用来抛出错误的 */
   }
 }
 
@@ -255,6 +255,11 @@ typedef unsigned int IdxT;
 ** anything without risking overflows. A safe way to use their values
 ** is to copy them to an array of a known type and use the array values.
 */
+/*
+	注解：这里主要是求一个随机数给挑选基准数时用。
+	因为clock_t和time_t在不同的平台有不同的定义，在这里将它们置换成其它类型的值的话，有溢出的风险。
+	所以用一个数组来保存clock和time的值，然后以unsigned int为单位将它们取出来，把它们的和作为一种随机结果。
+*/
 static unsigned int l_randomizePivot (void) {
   clock_t c = clock();
   time_t t = time(NULL);
@@ -281,7 +286,7 @@ static void set2 (lua_State *L, IdxT i, IdxT j) {
 
 
 /*
-** Return true iff value at stack index 'a' is less than the value at
+** Return true if value at stack index 'a' is less than the value at
 ** index 'b' (according to the order of the sort).
 */
 static int sort_comp (lua_State *L, int a, int b) {
@@ -307,31 +312,40 @@ static int sort_comp (lua_State *L, int a, int b) {
 ** Pos-condition: a[lo .. i - 1] <= a[i] == P <= a[i + 1 .. up]
 ** returns 'i'.
 */
+/*
+	注解：看不懂！lo .. i - 1中的..是什么意思？哦，原来是表示从lo至i-1的意思。
+	这个函数的作用就是选出一个基准值的位置，并且把小于基准值的值放到基准值位置的左边，
+	大于基准值的值放到基准值位置的右边。
+	这里的大于小于是依据比较函数来定义的。如果比较函数返回true，表示函数参数的第1个值小于第2个值。
+*/
 static IdxT partition (lua_State *L, IdxT lo, IdxT up) {
   IdxT i = lo;  /* will be incremented before first use */
   IdxT j = up - 1;  /* will be decremented before first use */
   /* loop invariant: a[lo .. i] <= P <= a[j .. up] */
   for (;;) {
     /* next loop: repeat ++i while a[i] < P */
+	/* 从低往高检查，检查位置停留在i */
     while (lua_geti(L, 1, ++i), sort_comp(L, -1, -2)) {
-      if (i == up - 1)  /* a[i] < P  but a[up - 1] == P  ?? */
+      if (i == up - 1)  /* a[i] < P  but a[up - 1] == P  ?? */	/* sort函数不正确，比如相等时也返回true，那while循环就有可能突破边界。下同。*/
         luaL_error(L, "invalid order function for sorting");
       lua_pop(L, 1);  /* remove a[i] */
     }
     /* after the loop, a[i] >= P and a[lo .. i - 1] < P */
     /* next loop: repeat --j while P < a[j] */
+	/* 从高往低检查，检查位置停留在j */
     while (lua_geti(L, 1, --j), sort_comp(L, -3, -1)) {
       if (j < i)  /* j < i  but  a[j] > P ?? */
         luaL_error(L, "invalid order function for sorting");
       lua_pop(L, 1);  /* remove a[j] */
     }
     /* after the loop, a[j] <= P and a[j + 1 .. up] >= P */
+	/* 如果j小于i，表示两个方向的检查重叠了，检查完毕。此时P的左边都不大于P，P的右边都不小于P*/
     if (j < i) {  /* no elements out of place? */
       /* a[lo .. i - 1] <= P <= a[j + 1 .. i .. up] */
       lua_pop(L, 1);  /* pop a[j] */
       /* swap pivot (a[up - 1]) with a[i] to satisfy pos-condition */
       set2(L, up - 1, i);
-      return i;
+      return i;	/* i就是新的基准值的位置 */
     }
     /* otherwise, swap a[i] - a[j] to restore invariant and repeat */
     set2(L, i, j);
@@ -343,6 +357,10 @@ static IdxT partition (lua_State *L, IdxT lo, IdxT up) {
 ** Choose an element in the middle (2nd-3th quarters) of [lo,up]
 ** "randomized" by 'rnd'
 */
+/*
+	注解：把数组分为4个等长的部分，然后随机在第2和第3部分找一个位置当作基准值所在的位置。
+	为什么这样选就比较好呢？经验得出？
+*/
 static IdxT choosePivot (IdxT lo, IdxT up, unsigned int rnd) {
   IdxT r4 = (up - lo) / 4;  /* range/4 */
   IdxT p = rnd % (r4 * 2) + (lo + r4);
@@ -353,6 +371,10 @@ static IdxT choosePivot (IdxT lo, IdxT up, unsigned int rnd) {
 
 /*
 ** QuickSort algorithm (recursive function)
+*/
+/*
+	注解：参数rnd告诉函数应该怎么挑选基准数（pivot）。如果为0，则取中间那个数作基准数。
+	为了便于解释，想象数组是横向放置的一排格子。数组的低位置(lo)索引在这排格子的左边，高位置(up)索引在右边。
 */
 static void auxsort (lua_State *L, IdxT lo, IdxT up,
                                    unsigned int rnd) {
@@ -369,9 +391,9 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
     if (up - lo == 1)  /* only 2 elements? */
       return;  /* already sorted */
     if (up - lo < RANLIMIT || rnd == 0)  /* small interval or no randomize? */
-      p = (lo + up)/2;  /* middle element is a good pivot */
+      p = (lo + up)/2;  /* middle element is a good pivot */	/* 如果数组不大（元素小于RANLIMIT），那就取中间位置作为基准值的位置。*/
     else  /* for larger intervals, it is worth a random pivot */
-      p = choosePivot(lo, up, rnd);
+      p = choosePivot(lo, up, rnd);	/* 如果数组太大，那就根据一定规则随机挑一个位置来当作基准值的位置*/
     lua_geti(L, 1, p);
     lua_geti(L, 1, lo);
     if (sort_comp(L, -2, -1))  /* a[p] < a[lo]? */
@@ -389,7 +411,8 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
     lua_geti(L, 1, p);  /* get middle element (Pivot) */
     lua_pushvalue(L, -1);  /* push Pivot */
     lua_geti(L, 1, up - 1);  /* push a[up - 1] */
-    set2(L, p, up - 1);  /* swap Pivot (a[p]) with a[up - 1] */
+    set2(L, p, up - 1);  /* swap Pivot (a[p]) with a[up - 1] */	/* 为什么要把a[p]和a[up-1]交换？*/
+	/* 基准值在栈顶，partition根据基准值和当前低位置与当前高位置来把数组中的元素分边。小于基准值的往左边放，大于基准值的往右边放，返回值表示基准值所在的位置*/
     p = partition(L, lo, up);
     /* a[lo .. p - 1] <= a[p] == P <= a[p + 1 .. up] */
     if (p - lo < up - p) {  /* lower interval is smaller? */

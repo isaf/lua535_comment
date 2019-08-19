@@ -356,6 +356,10 @@ LUA_API void      (lua_setallocf) (lua_State *L, lua_Alloc f, void *ud);
 #define lua_isboolean(L,n)	(lua_type(L, (n)) == LUA_TBOOLEAN)
 #define lua_isthread(L,n)	(lua_type(L, (n)) == LUA_TTHREAD)
 #define lua_isnone(L,n)		(lua_type(L, (n)) == LUA_TNONE)
+/* 
+	疑问：这里为什么不写成(lua_isnone(L,n) | lua_isnil(L,n)？)
+	如果是不想调用两次lua_type，那也应该把0换成LUA_TNIL啊，使用魔法数字好吗？
+*/
 #define lua_isnoneornil(L, n)	(lua_type(L, (n)) <= 0)
 
 #define lua_pushliteral(L, s)	lua_pushstring(L, "" s)

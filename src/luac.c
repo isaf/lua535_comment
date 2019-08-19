@@ -118,13 +118,15 @@ static int doargs(int argc, char* argv[])
 }
 
 #define FUNCTION "(function()end)();"
-
+/*
+	注解：这里定义一个一次性读完函数的reader。
+*/
 static const char* reader(lua_State *L, void *ud, size_t *size)
 {
  UNUSED(L);
  if ((*(int*)ud)--)
  {
-  *size=sizeof(FUNCTION)-1;
+  *size=sizeof(FUNCTION)-1;	//这次读了多少个字符
   return FUNCTION;
  }
  else
@@ -135,7 +137,11 @@ static const char* reader(lua_State *L, void *ud, size_t *size)
 }
 
 #define toproto(L,i) getproto(L->top+(i))
-
+/*
+	注解：
+	luac可以把多个脚本dump成一个luac文件。combine函数就是用来整合多个脚本到一个lua函数中去的。
+	下面提到的“脚本函数体”指的是一个脚本文件被加载后返回的结果函数。
+*/
 static const Proto* combine(lua_State* L, int n)
 {
  if (n==1)
@@ -144,11 +150,11 @@ static const Proto* combine(lua_State* L, int n)
  {
   Proto* f;
   int i=n;
-  if (lua_load(L,reader,&i,"=(" PROGNAME ")",NULL)!=LUA_OK) fatal(lua_tostring(L,-1));
+  if (lua_load(L,reader,&i,"=(" PROGNAME ")",NULL)!=LUA_OK) fatal(lua_tostring(L,-1));	//只是为了创建一个“母函数”
   f=toproto(L,-1);
   for (i=0; i<n; i++)
   {
-   f->p[i]=toproto(L,i-n-1);
+   f->p[i]=toproto(L,i-n-1);	//把多个脚本函数体挂在母函数上。
    if (f->p[i]->sizeupvalues>0) f->p[i]->upvalues[0].instack=0;
   }
   f->sizelineinfo=0;
@@ -189,7 +195,7 @@ static int pmain(lua_State* L)
  return 0;
 }
 
-int main(int argc, char* argv[])
+int main_(int argc, char* argv[])
 {
  lua_State* L;
  int i=doargs(argc,argv);

@@ -176,7 +176,7 @@ static void DumpFunction (const Proto *f, TString *psource, DumpState *D) {
   DumpCode(f, D);
   DumpConstants(f, D);
   DumpUpvalues(f, D);
-  DumpProtos(f, D);
+  DumpProtos(f, D);	/* dump函数的内部函数 */
   DumpDebug(f, D);
 }
 
