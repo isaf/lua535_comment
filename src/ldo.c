@@ -52,12 +52,12 @@
 */
 #if !defined(LUAI_THROW)				/* { */
 
-#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
+#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */		//整个源码就这里使用了c++的特性。c++的try catch机制有什么特别之处？作者为什么偏偏在这里引入了c++的代码？
 
 /* C++ exceptions */
 #define LUAI_THROW(L,c)		throw(c)
 #define LUAI_TRY(L,c,a) \
-	try { a } catch(...) { if ((c)->status == 0) (c)->status = -1; }
+	try { a } catch(...) { if ((c)->status == 0) (c)->status = -1; }	//这里为什么要用数字0？不是有个LUA_OK的宏吗？catch中的...是为了捕获任意异常，异常的相关信息在c中有记录。
 #define luai_jmpbuf		int  /* dummy variable */
 
 #elif defined(LUA_USE_POSIX)				/* }{ */
@@ -702,9 +702,9 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
       luaG_runerror(L, "attempt to yield from outside a coroutine");
   }
   L->status = LUA_YIELD;
-  ci->extra = savestack(L, ci->func);  /* save current 'func' */
+  ci->extra = savestack(L, ci->func);  /* save current 'func' */    /*记录当前函数在栈中的偏移量*/
   if (isLua(ci)) {  /* inside a hook? */
-    api_check(L, k == NULL, "hooks cannot continue after yielding");
+    api_check(L, k == NULL, "hooks cannot continue after yielding");    /*什么情况下会进来这里？正常情况下应该不会进来，这里可能是作者用来测试跟踪自己的代码的吧。*/
   }
   else {
     if ((ci->u.c.k = k) != NULL)  /* is there a continuation? */

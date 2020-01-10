@@ -7,6 +7,7 @@
 ** that have dlfcn, an implementation for Windows, and a stub for other
 ** systems.
 */
+/* 已看完 */
 
 #define loadlib_c
 #define LUA_LIB
@@ -59,7 +60,7 @@
 ** unique key for table in the registry that keeps handles
 ** for all loaded C libraries
 */
-static const int CLIBS = 0;
+static const int CLIBS = 0;     /*用一个静态常量的地址来作为保存C库table的key。因为是地址值，所以可以看作是唯一的key，不会冲突*/
 
 #define LIB_FAIL	"open"
 
@@ -423,7 +424,7 @@ static int readable (const char *filename) {
 
 static const char *pushnexttemplate (lua_State *L, const char *path) {
   const char *l;
-  while (*path == *LUA_PATH_SEP) path++;  /* skip separators */
+  while (*path == *LUA_PATH_SEP) path++;  /* skip separators */ /*星号操作符作用于字符串上，表示是取字符串首字符的ASSCII值/
   if (*path == '\0') return NULL;  /* no more templates */
   l = strchr(path, *LUA_PATH_SEP);  /* find next separator */
   if (l == NULL) l = path + strlen(path);
@@ -431,7 +432,7 @@ static const char *pushnexttemplate (lua_State *L, const char *path) {
   return l;
 }
 
-
+/*在指定的路径描述中查找指定的模块名所对应的文件路径*/
 static const char *searchpath (lua_State *L, const char *name,
                                              const char *path,
                                              const char *sep,

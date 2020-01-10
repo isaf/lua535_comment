@@ -204,6 +204,7 @@ static void reverse (lua_State *L, StkId from, StkId to) {
 ** Let x = AB, where A is a prefix of length 'n'. Then,
 ** rotate x n == BA. But BA == (A^r . B^r)^r.
 */
+/* 旋转idx到top之间的元素，一共旋转n个位置，比如有栈：12345，那rotate(2,2)后的结果为14523，rotate(3,1)的结果为12534*/
 LUA_API void lua_rotate (lua_State *L, int idx, int n) {
   StkId p, t, m;
   lua_lock(L);
@@ -747,7 +748,7 @@ static void auxsetstr (lua_State *L, const TValue *t, const char *k) {
   if (luaV_fastset(L, t, str, slot, luaH_getstr, L->top - 1))
     L->top--;  /* pop value */
   else {
-    setsvalue2s(L, L->top, str);  /* push 'str' (to make it a TValue) */
+    setsvalue2s(L, L->top, str);  /* push 'str' (to make it a TValue) */    //把一个value设到top其实就相当于push一个value了
     api_incr_top(L);
     luaV_finishset(L, t, L->top - 1, L->top - 2, slot);
     L->top -= 2;  /* pop value and key */
@@ -849,7 +850,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   lua_lock(L);
   api_checknelems(L, 1);
   obj = index2addr(L, objindex);
-  if (ttisnil(L->top - 1))
+  if (ttisnil(L->top - 1))  /* 如果设的值是nil，那就相当于删除它的元表*/
     mt = NULL;
   else {
     api_check(L, ttistable(L->top - 1), "table expected");
@@ -872,7 +873,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
       }
       break;
     }
-    default: {
+    default: {  /*除了table和userdata是绑定具体的对象，其它数据类型都是与类型绑定，同类型的对象共用一个metatable，比如string类型的对象都共用一个metatable*/
       G(L)->mt[ttnov(obj)] = mt;
       break;
     }

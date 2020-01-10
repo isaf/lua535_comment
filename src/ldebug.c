@@ -137,7 +137,7 @@ static const char *findvararg (CallInfo *ci, int n, StkId *pos) {
     return NULL;  /* no such vararg */
   else {
     *pos = ci->func + nparams + n;
-    return "(*vararg)";  /* generic name for any vararg */
+    return "(*vararg)";  /* generic name for any vararg */  /*因为变参没有名字*/
   }
 }
 
@@ -176,7 +176,7 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
     if (!isLfunction(L->top - 1))  /* not a Lua function? */
       name = NULL;
     else  /* consider live variables at function start (parameters) */
-      name = luaF_getlocalname(clLvalue(L->top - 1)->p, n, 0);
+      name = luaF_getlocalname(clLvalue(L->top - 1)->p, n, 0);      /*最后一个参数为0，表示了只能获取函数的形式参数这些局部变量*/
   }
   else {  /* active function; get information through 'ar' */
     StkId pos = NULL;  /* to avoid warnings */

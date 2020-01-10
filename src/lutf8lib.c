@@ -3,6 +3,7 @@
 ** Standard library for UTF-8 manipulation
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define lutf8lib_c
 #define LUA_LIB
@@ -25,7 +26,7 @@
 #define iscont(p)	((*(p) & 0xC0) == 0x80)
 
 
-/* from strlib */
+/* from strlib */   /*居然copy strlib.c中的代码？难道这个函数不能提取到一个头文件中吗？*/
 /* translate a relative string position: negative means back from end */
 static lua_Integer u_posrelat (lua_Integer pos, size_t len) {
   if (pos >= 0) return pos;

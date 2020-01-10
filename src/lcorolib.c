@@ -31,7 +31,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
     lua_pushliteral(L, "too many arguments to resume");
     return -1;  /* error flag */
   }
-  if (lua_status(co) == LUA_OK && lua_gettop(co) == 0) {
+  if (lua_status(co) == LUA_OK && lua_gettop(co) == 0) {    /*≈–∂œ“¿æ›£ø*/
     lua_pushliteral(L, "cannot resume dead coroutine");
     return -1;  /* error flag */
   }

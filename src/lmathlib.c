@@ -3,6 +3,7 @@
 ** Standard mathematical library
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define lmathlib_c
 #define LUA_LIB
@@ -168,7 +169,7 @@ static int math_sqrt (lua_State *L) {
   return 1;
 }
 
-
+/*不知道把有符号整型转成无符号整型再比较的意义何在？*/
 static int math_ult (lua_State *L) {
   lua_Integer a = luaL_checkinteger(L, 1);
   lua_Integer b = luaL_checkinteger(L, 2);
@@ -246,7 +247,7 @@ static int math_max (lua_State *L) {
 */
 static int math_random (lua_State *L) {
   lua_Integer low, up;
-  double r = (double)l_rand() * (1.0 / ((double)L_RANDMAX + 1.0));
+  double r = (double)l_rand() * (1.0 / ((double)L_RANDMAX + 1.0));  //这里加1是为了保证r的值不会等于1。why？
   switch (lua_gettop(L)) {  /* check number of arguments */
     case 0: {  /* no arguments */
       lua_pushnumber(L, (lua_Number)r);  /* Number between 0 and 1 */
@@ -273,7 +274,7 @@ static int math_random (lua_State *L) {
   return 1;
 }
 
-
+/*由于有些标准实现的随机序列生成算法有缺陷。导致不同种子生成的随机序列中的第一个值总是一样的，所以一般都不使用随机序列中的第一个值*/
 static int math_randomseed (lua_State *L) {
   l_srand((unsigned int)(lua_Integer)luaL_checknumber(L, 1));
   (void)l_rand(); /* discard first value to avoid undesirable correlations */

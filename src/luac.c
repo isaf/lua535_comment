@@ -3,6 +3,7 @@
 ** Lua compiler (saves bytecodes to files; also lists bytecodes)
 ** See Copyright Notice in lua.h
 */
+/* ÒÑ¿´Íê */
 
 #define luac_c
 #define LUA_CORE

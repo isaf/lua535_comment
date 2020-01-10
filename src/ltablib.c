@@ -3,6 +3,7 @@
 ** Library for Table Manipulation
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define ltablib_c
 #define LUA_LIB
@@ -53,7 +54,7 @@ static void checktab (lua_State *L, int arg, int what) {
       lua_pop(L, n);  /* pop metatable and tested metamethods */
     }
     else
-      luaL_checktype(L, arg, LUA_TTABLE);  /* force an error */	/* 这一句是用来抛出错误的 */
+      luaL_checktype(L, arg, LUA_TTABLE);  /* force an error */	/* 这一句是用来抛出错误的，这用法也是怪异 */
   }
 }
 
@@ -98,7 +99,7 @@ static int tinsert (lua_State *L) {
       return luaL_error(L, "wrong number of arguments to 'insert'");
     }
   }
-  lua_seti(L, 1, pos);  /* t[pos] = v */
+  lua_seti(L, 1, pos);  /* t[pos] = v */    /*不管是2个参数还是3个参数，v总是最后一个参数，这是为了让v在栈顶*/
   return 0;
 }
 
@@ -114,7 +115,7 @@ static int tremove (lua_State *L) {
     lua_seti(L, 1, pos);  /* t[pos] = t[pos + 1] */
   }
   lua_pushnil(L);
-  lua_seti(L, 1, pos);  /* t[pos] = nil */
+  lua_seti(L, 1, pos);  /* t[pos] = nil */  /* 这里把pos改为size是不是更清晰些？ pos最后一定是等于size的吧。*/
   return 1;
 }
 
@@ -125,6 +126,7 @@ static int tremove (lua_State *L) {
 ** "possible" means destination after original range, or smaller
 ** than origin, or copying to another table.
 */
+/* 作用是把一个table中的一段元素复制到另一个table（或者当前这个table）的指定位置去*/
 static int tmove (lua_State *L) {
   lua_Integer f = luaL_checkinteger(L, 2);
   lua_Integer e = luaL_checkinteger(L, 3);
@@ -156,7 +158,7 @@ static int tmove (lua_State *L) {
   return 1;
 }
 
-
+/* 把表中的一个key加到目标buffer中去*/
 static void addfield (lua_State *L, luaL_Buffer *b, lua_Integer i) {
   lua_geti(L, 1, i);
   if (!lua_isstring(L, -1))
@@ -199,7 +201,7 @@ static int pack (lua_State *L) {
   for (i = n; i >= 1; i--)  /* assign elements */
     lua_seti(L, 1, i);
   lua_pushinteger(L, n);
-  lua_setfield(L, 1, "n");  /* t.n = number of elements */
+  lua_setfield(L, 1, "n");  /* t.n = number of elements */  /* 添加一个名叫“n”的key意义何在？）*/
   return 1;  /* return table */
 }
 
@@ -278,7 +280,7 @@ static unsigned int l_randomizePivot (void) {
 /* arrays larger than 'RANLIMIT' may use randomized pivots */
 #define RANLIMIT	100u
 
-
+/* 将栈顶的两个值分别设到栈底的表的i和j位置上*/
 static void set2 (lua_State *L, IdxT i, IdxT j) {
   lua_seti(L, 1, i);
   lua_seti(L, 1, j);
@@ -425,7 +427,7 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
       n = up - p;  /* size of smaller interval */
       up = p - 1;  /* tail call for [lo .. p - 1]  (lower interval) */
     }
-    if ((up - lo) / 128 > n) /* partition too imbalanced? */
+    if ((up - lo) / 128 > n) /* partition too imbalanced? */	/* 如果少的那部分数量不足总数的128分之1，那就说明分割的非常不平衡，需要用choosePivot来算基准值的位置*/
       rnd = l_randomizePivot();  /* try a new randomization */
   }  /* tail call auxsort(L, lo, up, rnd) */
 }

@@ -3,6 +3,7 @@
 ** Standard Operating System library
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define loslib_c
 #define LUA_LIB
@@ -216,7 +217,7 @@ static void setallfields (lua_State *L, struct tm *stm) {
   setfield(L, "hour", stm->tm_hour);
   setfield(L, "day", stm->tm_mday);
   setfield(L, "month", stm->tm_mon + 1);
-  setfield(L, "year", stm->tm_year + 1900);
+  setfield(L, "year", stm->tm_year + 1900);    //tm中的year记得是1900年到目标年份的差值，所以这里要加上1900。其它需要加值的都是一样原因，因为lua数据的显示偏常识一点（数组索引、月份、日期等从1开始而不是0）
   setfield(L, "wday", stm->tm_wday + 1);
   setfield(L, "yday", stm->tm_yday + 1);
   setboolfield(L, "isdst", stm->tm_isdst);

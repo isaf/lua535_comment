@@ -3,6 +3,7 @@
 ** Interface from Lua to its debug API
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define ldblib_c
 #define LUA_LIB
@@ -24,7 +25,7 @@
 ** The hook table at registry[&HOOKKEY] maps threads to their current
 ** hook function. (We only need the unique address of 'HOOKKEY'.)
 */
-static const int HOOKKEY = 0;
+static const int HOOKKEY = 0;   /* 用静态常量的地址作为lua注册表里的唯一Key */
 
 
 /*
@@ -182,7 +183,7 @@ static int db_getinfo (lua_State *L) {
   }
   if (strchr(options, 't'))
     settabsb(L, "istailcall", ar.istailcall);
-  if (strchr(options, 'L'))
+  if (strchr(options, 'L')) //L和f的信息会在lua_getinfo中被圧到栈顶
     treatstackoption(L, L1, "activelines");
   if (strchr(options, 'f'))
     treatstackoption(L, L1, "func");

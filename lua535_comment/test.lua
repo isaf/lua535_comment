@@ -1,5 +1,10 @@
-t = {4,1,2,3}
+function foo()
+    print(4444444)
+    coroutine.yield()
+    print(3333333)
+end;
 
-table.sort(t, function(a,b) return a > b end)
+local co = coroutine.create(foo)
+coroutine.resume(co)
+coroutine.resume(co)
 
-print(table.unpack(t))

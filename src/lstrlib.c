@@ -3,6 +3,7 @@
 ** Standard library for string operations and pattern-matching
 ** See Copyright Notice in lua.h
 */
+/*正则表达式那块还没看，其它已看完*/
 
 #define lstrlib_c
 #define LUA_LIB
@@ -44,7 +45,7 @@
 ** 'size_t'. (We assume that 'lua_Integer' cannot be smaller than 'int'.)
 */
 #define MAX_SIZET	((size_t)(~(size_t)0))
-
+/*字符串的最大长度*/
 #define MAXSIZE  \
 	(sizeof(size_t) < sizeof(int) ? MAX_SIZET : (size_t)(INT_MAX))
 
@@ -125,14 +126,14 @@ static int str_rep (lua_State *L) {
   lua_Integer n = luaL_checkinteger(L, 2);
   const char *sep = luaL_optlstring(L, 3, "", &lsep);
   if (n <= 0) lua_pushliteral(L, "");
-  else if (l + lsep < l || l + lsep > MAXSIZE / n)  /* may overflow? */
+  else if (l + lsep < l || l + lsep > MAXSIZE / n)  /* may overflow? */ /*什么情况下第一个条件能成立？lsep有可能小于0吗？*/
     return luaL_error(L, "resulting string too large");
   else {
     size_t totallen = (size_t)n * l + (size_t)(n - 1) * lsep;
     luaL_Buffer b;
     char *p = luaL_buffinitsize(L, &b, totallen);
     while (n-- > 1) {  /* first n-1 copies (followed by separator) */
-      memcpy(p, s, l * sizeof(char)); p += l;
+      memcpy(p, s, l * sizeof(char)); p += l;   //char不都是1字节的吗？这里为什么要多此一举地乘以sizeof(char)？如果乘以sizeof(char)是正确的，那后面的应该是p+=l*sizeof(char)啊。
       if (lsep > 0) {  /* empty 'memcpy' is not that cheap */
         memcpy(p, sep, lsep * sizeof(char));
         p += lsep;

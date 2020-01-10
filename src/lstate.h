@@ -90,13 +90,13 @@ typedef struct stringtable {
 ** function can be called with the correct top.
 */
 typedef struct CallInfo {
-  StkId func;  /* function index in the stack */
+  StkId func;  /* function index in the stack */    /*当函数被yield时,func指向的是yield的参数*/
   StkId	top;  /* top for this function */
   struct CallInfo *previous, *next;  /* dynamic call link */
   union {
     struct {  /* only for Lua functions */
       StkId base;  /* base for this function */
-      const Instruction *savedpc;
+      const Instruction *savedpc;       /*这里记录的是当前执行到的指令(const修饰的是*savedpc,所以指令内容不可变,但当前指令savedpc可变). func(实际上是LClosure)中有记录函数的所有指令*/
     } l;
     struct {  /* only for C functions */
       lua_KFunction k;  /* continuation in case of yields */
@@ -124,7 +124,7 @@ typedef struct CallInfo {
 #define CIST_LEQ	(1<<7)  /* using __lt for __le */
 #define CIST_FIN	(1<<8)  /* call is running a finalizer */
 
-#define isLua(ci)	((ci)->callstatus & CIST_LUA)
+#define isLua(ci)	((ci)->callstatus & CIST_LUA)   /*为什么这个可以用来判断当前函数是不是在hook中调用？看名字感觉这个就是判断ci是不是个lua函数啊*/
 
 /* assume that CIST_OAH has offset 0 and that 'v' is strictly 0/1 */
 #define setoah(st,v)	((st) = ((st) & ~CIST_OAH) | (v))
@@ -179,17 +179,17 @@ struct lua_State {
   CommonHeader;
   unsigned short nci;  /* number of items in 'ci' list */
   lu_byte status;
-  StkId top;  /* first free slot in the stack */
+  StkId top;  /* first free slot in the stack */    /*虚拟机的当前可用栈位置(注意它大部分时候都不是栈顶)*/
   global_State *l_G;
-  CallInfo *ci;  /* call info for current function */
+  CallInfo *ci;  /* call info for current function */   /*当前运行的函数调用信息,通过它的top和base可知该函数所用的是栈的哪一段*/
   const Instruction *oldpc;  /* last pc traced */
-  StkId stack_last;  /* last free slot in the stack */
-  StkId stack;  /* stack base */
+  StkId stack_last;  /* last free slot in the stack */  /*虚拟机的栈顶*/
+  StkId stack;  /* stack base */    /*整个虚拟机的栈底*/
   UpVal *openupval;  /* list of open upvalues in this stack */
   GCObject *gclist;
   struct lua_State *twups;  /* list of threads with open upvalues */
   struct lua_longjmp *errorJmp;  /* current error recover point */
-  CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
+  CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */     /*函数调用栈底*/
   volatile lua_Hook hook;
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
   int stacksize;

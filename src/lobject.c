@@ -377,7 +377,8 @@ void luaO_tostring (lua_State *L, StkId obj) {
   else {
     len = lua_number2str(buff, sizeof(buff), fltvalue(obj));
 #if !defined(LUA_COMPAT_FLOATSTRING)
-    if (buff[strspn(buff, "-0123456789")] == '\0') {  /* looks like an int? */
+    //size_t strspn(const char *str1, const char *str2) 检索字符串 str1 中第一个不在字符串 str2 中出现的字符下标
+    if (buff[strspn(buff, "-0123456789")] == '\0') {  /* looks like an int? */ /*如果字符串的每个字符都是-0123456789里面的字符*/
       buff[len++] = lua_getlocaledecpoint();
       buff[len++] = '0';  /* adds '.0' to result */
     }

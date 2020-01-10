@@ -3,6 +3,7 @@
 ** Standard I/O (and system) library
 ** See Copyright Notice in lua.h
 */
+/* 已看完 */
 
 #define liolib_c
 #define LUA_LIB
@@ -186,7 +187,7 @@ static FILE *tofile (lua_State *L) {
 ** handle is in a consistent state.
 */
 static LStream *newprefile (lua_State *L) {
-  LStream *p = (LStream *)lua_newuserdata(L, sizeof(LStream));
+  LStream *p = (LStream *)lua_newuserdata(L, sizeof(LStream));  /*Lua中的File对象实际上是一个Userdata，它绑定了一个名字叫“FILE”的metatable*/
   p->closef = NULL;  /* mark file handle as 'closed' */
   luaL_setmetatable(L, LUA_FILEHANDLE);
   return p;
@@ -333,6 +334,7 @@ static int io_readline (lua_State *L);
 /*
 ** maximum number of arguments to 'f:lines'/'io.lines' (it + 3 must fit
 ** in the limit for upvalues of a closure)
+** 即MAXARGLINE的值加3不能超过MAXUPVAL。
 */
 #define MAXARGLINE	250
 
@@ -340,8 +342,8 @@ static void aux_lines (lua_State *L, int toclose) {
   int n = lua_gettop(L) - 1;  /* number of arguments to read */
   luaL_argcheck(L, n <= MAXARGLINE, MAXARGLINE + 2, "too many arguments");
   lua_pushinteger(L, n);  /* number of arguments to read */
-  lua_pushboolean(L, toclose);  /* close/not close file when finished */
-  lua_rotate(L, 2, 2);  /* move 'n' and 'toclose' to their positions */
+  lua_pushboolean(L, toclose);  /* close/not close file when finished */ /* before:file,...,n,toclose */
+  lua_rotate(L, 2, 2);  /* move 'n' and 'toclose' to their positions */  /* after :file,n,toclose,... */
   lua_pushcclosure(L, io_readline, 3 + n);
 }
 
@@ -770,7 +772,7 @@ LUAMOD_API int luaopen_io (lua_State *L) {
   /* create (and set) default files */
   createstdfile(L, stdin, IO_INPUT, "stdin");
   createstdfile(L, stdout, IO_OUTPUT, "stdout");
-  createstdfile(L, stderr, NULL, "stderr");
+  createstdfile(L, stderr, NULL, "stderr");     //为什么stderr不需要放到注册表里？
   return 1;
 }
 

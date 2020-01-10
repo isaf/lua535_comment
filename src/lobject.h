@@ -129,10 +129,10 @@ typedef struct lua_TValue {
 /* tag with no variants (bits 0-3) */
 #define novariant(x)	((x) & 0x0F)
 
-/* type tag of a TValue (bits 0-3 for tags + variant bits 4-5) */
+/* type tag of a TValue (bits 0-3 for tags + variant bits 4-5) */   /* 用这个可以得到对象的具体类型，即大类型加细分类型（具体到长字符串，短字符串，浮点数，整数，哪种函数等）*/
 #define ttype(o)	(rttype(o) & 0x3F)
 
-/* type tag of a TValue with no variants (bits 0-3) */
+/* type tag of a TValue with no variants (bits 0-3) */  /* 用这个可以得到对象的大类型（字符串，数字，函数等）*/
 #define ttnov(o)	(novariant(rttype(o)))
 
 
@@ -396,8 +396,8 @@ typedef struct Upvaldesc {
 */
 typedef struct LocVar {
   TString *varname;
-  int startpc;  /* first point where variable is active */
-  int endpc;    /* first point where variable is dead */
+  int startpc;  /* first point where variable is active */      /*声明变量的地方*/
+  int endpc;    /* first point where variable is dead */        /*变量离开作用域的地方*/
 } LocVar;
 
 
@@ -420,7 +420,7 @@ typedef struct Proto {
   TValue *k;  /* constants used by the function */
   Instruction *code;  /* opcodes */		/* code保存了函数被编译后的所有指令 */
   struct Proto **p;  /* functions defined inside the function */
-  int *lineinfo;  /* map from opcodes to source lines (debug information) */
+  int *lineinfo;  /* map from opcodes to source lines (debug information) */    /*指令序号与源码行号的对应关系。比如lineinfo[5]的值为10，表示此函数的第5条指令是由源码的第10行生成。*/
   LocVar *locvars;  /* information about local variables (debug information) */
   Upvaldesc *upvalues;  /* upvalue information */
   struct LClosure *cache;  /* last-created closure with this prototype */

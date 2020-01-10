@@ -515,7 +515,7 @@ LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
     if (buffonstack(B))
       newbuff = (char *)resizebox(L, -1, newsize);
     else {  /* no buffer yet */
-      newbuff = (char *)newbox(L, newsize);
+      newbuff = (char *)newbox(L, newsize); /* box是一个usderdata，它在当前Lua函数的栈上，是个临时数据。所以lua的buffer分两种，一种的数据在buffer的initb上，另一种的数据则以userdata的形式存在于lua栈上*/
       memcpy(newbuff, B->b, B->n * sizeof(char));  /* copy original content */
     }
     B->b = newbuff;
