@@ -193,6 +193,7 @@ typedef struct lua_TValue {
 
 
 /* Macros to set values */
+/*这些宏把各种各样的数据转为TValue*/
 #define settt_(o,t)	((o)->tt_=(t))
 
 #define setfltvalue(obj,x) \
@@ -345,7 +346,7 @@ typedef union UTString {
 */
 typedef struct Udata {
   CommonHeader;
-  lu_byte ttuv_;  /* user value's tag */
+  lu_byte ttuv_;  /* user value's tag */ /*用户的自定义标记，用于判断这个userdata是什么，从而采取不同的处理。*/
   struct Table *metatable;
   size_t len;  /* number of bytes */
   union Value user_;  /* user value */
@@ -385,8 +386,8 @@ typedef union UUdata {
 */
 typedef struct Upvaldesc {
   TString *name;  /* upvalue name (for debug information) */
-  lu_byte instack;  /* whether it is in stack (register) */
-  lu_byte idx;  /* index of upvalue (in stack or in outer function's list) */
+  lu_byte instack;  /* whether it is in stack (register) */ /*如果upvalue在栈上，说明这个upvalue是上层函数的upvalue，否则就是更外层的upvalue*/
+  lu_byte idx;  /* index of upvalue (in stack or in outer function's list) */   /*upvalue的位置索引，根据instack标记，可以找到upvalue具体在哪*/
 } Upvaldesc;
 
 
@@ -453,7 +454,7 @@ typedef struct CClosure {
 typedef struct LClosure {
   ClosureHeader;
   struct Proto *p;
-  UpVal *upvals[1];  /* list of upvalues */
+  UpVal *upvals[1];  /* list of upvalues */ /*像这种写法都是为了new一个不定长的数据块出来，数组一定要放在结构体的最后，在分配内存的时候用sizeLclosure来计算内存大小。*/
 } LClosure;
 
 

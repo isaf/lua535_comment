@@ -424,7 +424,7 @@ static int readable (const char *filename) {
 
 static const char *pushnexttemplate (lua_State *L, const char *path) {
   const char *l;
-  while (*path == *LUA_PATH_SEP) path++;  /* skip separators */ /*星号操作符作用于字符串上，表示是取字符串首字符的ASSCII值/
+  while (*path == *LUA_PATH_SEP) path++;  /* skip separators */ /*星号操作符作用于字符串上，表示是取字符串首字符的ASSCII值*/
   if (*path == '\0') return NULL;  /* no more templates */
   l = strchr(path, *LUA_PATH_SEP);  /* find next separator */
   if (l == NULL) l = path + strlen(path);

@@ -91,11 +91,11 @@ typedef struct stringtable {
 */
 typedef struct CallInfo {
   StkId func;  /* function index in the stack */    /*当函数被yield时,func指向的是yield的参数*/
-  StkId	top;  /* top for this function */
+  StkId	top;  /* top for this function */   /*当前函数的最大栈位置*/
   struct CallInfo *previous, *next;  /* dynamic call link */
   union {
     struct {  /* only for Lua functions */
-      StkId base;  /* base for this function */
+      StkId base;  /* base for this function */     /*当前函数的寄存器起始位置。用栈里面的元素来代表寄存器*/
       const Instruction *savedpc;       /*这里记录的是当前执行到的指令(const修饰的是*savedpc,所以指令内容不可变,但当前指令savedpc可变). func(实际上是LClosure)中有记录函数的所有指令*/
     } l;
     struct {  /* only for C functions */
@@ -148,16 +148,16 @@ typedef struct global_State {
   lu_byte gcstate;  /* state of garbage collector */
   lu_byte gckind;  /* kind of GC running */
   lu_byte gcrunning;  /* true if GC is running */
-  GCObject *allgc;  /* list of all collectable objects */
-  GCObject **sweepgc;  /* current position of sweep in list */
-  GCObject *finobj;  /* list of collectable objects with finalizers */
-  GCObject *gray;  /* list of gray objects */
+  GCObject *allgc;  /* list of all collectable objects */   /*所有可回收的对象都挂在这个链表上*/
+  GCObject **sweepgc;  /* current position of sweep in list */  /*当前清扫到的链表位置*/
+  GCObject *finobj;  /* list of collectable objects with finalizers */  /*那些带gc元方法的对象都挂在这个链表上*/
+  GCObject *gray;  /* list of gray objects */       /*灰色对象挂在这个链表上*/
   GCObject *grayagain;  /* list of objects to be traversed atomically */
-  GCObject *weak;  /* list of tables with weak values */
-  GCObject *ephemeron;  /* list of ephemeron tables (weak keys) */
-  GCObject *allweak;  /* list of all-weak tables */
-  GCObject *tobefnz;  /* list of userdata to be GC */
-  GCObject *fixedgc;  /* list of objects not to be collected */
+  GCObject *weak;  /* list of tables with weak values */    /*只有弱值的弱表挂在这个链表上*/
+  GCObject *ephemeron;  /* list of ephemeron tables (weak keys) */ /*只有弱键的弱表挂在这个链表上*/
+  GCObject *allweak;  /* list of all-weak tables */ /*键值都是弱的弱表挂在这个链表上*/
+  GCObject *tobefnz;  /* list of userdata to be GC */   /*这里不仅仅是userdata，也包括其它。*/
+  GCObject *fixedgc;  /* list of objects not to be collected */ /*不可回收（比如关键字字符串）的对象挂在这个链表上*/
   struct lua_State *twups;  /* list of threads with open upvalues */
   unsigned int gcfinnum;  /* number of finalizers to call in each GC step */
   int gcpause;  /* size of pause between successive GCs */

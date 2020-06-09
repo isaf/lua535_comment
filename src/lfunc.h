@@ -15,7 +15,7 @@
                          cast(int, sizeof(TValue)*((n)-1)))
 
 #define sizeLclosure(n)	(cast(int, sizeof(LClosure)) + \
-                         cast(int, sizeof(TValue *)*((n)-1)))
+                         cast(int, sizeof(TValue *)*((n)-1)))   //这里为什么不是sizeof(UpVal*)呢？虽然结果是一样的，但写UpVal应该更好理解些。
 
 
 /* test whether thread is in 'twups' list */

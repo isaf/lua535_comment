@@ -70,7 +70,14 @@ LUAI_DDEF const char *const luaP_opnames[NUM_OPCODES+1] = {
 
 
 #define opmode(t,a,b,c,m) (((t)<<7) | ((a)<<6) | ((b)<<4) | ((c)<<2) | (m))
-
+/*
+luaP_opmodes描述了各个指令的特点。
+T：表示是否会跳过下一个pc对应的指令。（T for what？）
+A：表示是否会修改寄存器的内容。1是，0否。
+B：参数B的使用情况。
+C：参数C的使用情况。
+D：指定的参数格式。
+*/
 LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
 /*       T  A    B       C     mode		   opcode	*/
   opmode(0, 1, OpArgR, OpArgN, iABC)		/* OP_MOVE */

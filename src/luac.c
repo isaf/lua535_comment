@@ -290,7 +290,7 @@ static void PrintConstant(const Proto* f, int i)
 }
 
 #define UPVALNAME(x) ((f->upvalues[x].name) ? getstr(f->upvalues[x].name) : "-")
-#define MYK(x)		(-1-(x))
+#define MYK(x)		(-1-(x))    /*把常量索引转成负数用于显示，比如常量索引是1（索引都是从0开始），那在luac list的时候会显示为-2*/
 
 static void PrintCode(const Proto* f)
 {

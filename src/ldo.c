@@ -298,7 +298,7 @@ static StkId adjust_varargs (lua_State *L, Proto *p, int actual) {
   fixed = L->top - actual;  /* first fixed argument */
   base = L->top;  /* final position of first argument */
   for (i = 0; i < nfixargs && i < actual; i++) {
-    setobjs2s(L, L->top++, fixed + i);
+    setobjs2s(L, L->top++, fixed + i);  /*把固定参数移到base处，这样就可以通过寄存器来访问这些固定参数了（寄存器的起始地址就是base）*/
     setnilvalue(fixed + i);  /* erase original copy (for GC) */
   }
   for (; i < nfixargs; i++)
@@ -427,7 +427,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       ci->func = func;
       ci->top = L->top + LUA_MINSTACK;
       lua_assert(ci->top <= L->stack_last);
-      ci->callstatus = 0;
+      ci->callstatus = 0;   /*标记这是一个C函数（包括C cloure和light c函数）*/
       if (L->hookmask & LUA_MASKCALL)
         luaD_hook(L, LUA_HOOKCALL, -1);
       lua_unlock(L);
@@ -457,7 +457,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       L->top = ci->top = base + fsize;
       lua_assert(ci->top <= L->stack_last);
       ci->u.l.savedpc = p->code;  /* starting point */
-      ci->callstatus = CIST_LUA;
+      ci->callstatus = CIST_LUA;    /*标记这是一个Lua函数调用*/
       if (L->hookmask & LUA_MASKCALL)
         callhook(L, ci);
       return 0;
@@ -702,7 +702,7 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
       luaG_runerror(L, "attempt to yield from outside a coroutine");
   }
   L->status = LUA_YIELD;
-  ci->extra = savestack(L, ci->func);  /* save current 'func' */    /*记录当前函数在栈中的偏移量*/
+  ci->extra = savestack(L, ci->func);  /* save current 'func' */    /*记录当前函数在栈中的偏移量。为什么不直接保存func呢？*/
   if (isLua(ci)) {  /* inside a hook? */
     api_check(L, k == NULL, "hooks cannot continue after yielding");    /*什么情况下会进来这里？正常情况下应该不会进来，这里可能是作者用来测试跟踪自己的代码的吧。*/
   }

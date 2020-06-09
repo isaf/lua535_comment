@@ -110,6 +110,7 @@ static void reallymarkobject (global_State *g, GCObject *o);
 /*
 ** link collectable object 'o' into list pointed by 'p'
 */
+/*链在开头*/
 #define linkgclist(o,p)	((o)->gclist = (p), (p) = obj2gco(o))
 
 
@@ -152,14 +153,15 @@ static int iscleared (global_State *g, const TValue *o) {
 ** object to white [sweep it] to avoid other barrier calls for this
 ** same object.)
 */
+/*白色对象v被黑色对象o引用时，如果在稳定阶段则将v标记，否则，为了避免重复操作，这里把o变白（为什么？变白不就意味着要被清扫了？见下面解释。）*/
 void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
   global_State *g = G(L);
   lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
   if (keepinvariant(g))  /* must keep invariant? */
-    reallymarkobject(g, v);  /* restore invariant */
+    reallymarkobject(g, v);  /* restore invariant */    /*稳定阶段重新标记v*/
   else {  /* sweep phase */
     lua_assert(issweepphase(g));
-    makewhite(g, o);  /* mark main obj. as white to avoid other barriers */
+    makewhite(g, o);  /* mark main obj. as white to avoid other barriers */ /*清扫阶段（atomic之后的阶段）的白是翻转后的白，此时的白对象不会被判断为死亡，所以不会被清扫*/
   }
 }
 
@@ -168,6 +170,7 @@ void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
 ** barrier that moves collector backward, that is, mark the black object
 ** pointing to a white object as gray again.
 */
+/*因为黑对象引用了一个白对象，那它就不再是黑了，变成灰色，并且加入到grayagain链表中，等原子操作时再看看吧*/
 void luaC_barrierback_ (lua_State *L, Table *t) {
   global_State *g = G(L);
   lua_assert(isblack(t) && !isdead(g, t));
@@ -194,7 +197,7 @@ void luaC_upvalbarrier_ (lua_State *L, UpVal *uv) {
 void luaC_fix (lua_State *L, GCObject *o) {
   global_State *g = G(L);
   lua_assert(g->allgc == o);  /* object must be 1st in 'allgc' list! */	//为什么呢？只能fix最新的object？
-  white2gray(o);  /* they will be gray forever */
+  white2gray(o);  /* they will be gray forever */   /*反正也gc不到，灰不灰都没所谓吧？*/
   g->allgc = o->next;  /* remove object from 'allgc' list */	//从allgc中移除就可以保证不被gc了，因为gc是遍历allgc上的所有object的
   o->next = g->fixedgc;  /* link it to 'fixedgc' list */
   g->fixedgc = o;
@@ -205,6 +208,7 @@ void luaC_fix (lua_State *L, GCObject *o) {
 ** create a new collectable object (with given type and size) and link
 ** it to 'allgc' list.
 */
+/* 创建一个新的对象时是加到allgc的链头的，这样做的目的是为了gc的时候新对象不会被立刻扫描标记到。*/
 GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
   global_State *g = G(L);
   GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));
@@ -227,9 +231,9 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 
 
 /*
-** mark an object. Userdata, strings, and closed upvalues are visited
-** and turned black here. Other objects are marked gray and added
-** to appropriate list to be visited (and turned black) later. (Open
+** mark an object. Userdata, strings, and closed upvalues are visited       因为字符串、Userdata不会引用别的对象，所以这里直接变黑。其它类型的对象
+** and turned black here. Other objects are marked gray and added           由于有可能引用别的对象，所以暂时让它变灰并挂在灰色链表上，后面再看情况
+** to appropriate list to be visited (and turned black) later. (Open        再让它变黑。这里没看到对closed upvalues的操作呀！
 ** upvalues are already linked in 'headuv' list.)
 */
 static void reallymarkobject (global_State *g, GCObject *o) {
@@ -462,7 +466,7 @@ static lu_mem traversetable (global_State *g, Table *h) {
     else if (!weakvalue)  /* strong values? */
       traverseephemeron(g, h);
     else  /* all weak */
-      linkgclist(h, g->allweak);  /* nothing to traverse now */
+      linkgclist(h, g->allweak);  /* nothing to traverse now */     /*如果是全弱的，那就没什么好标记的，键值都是白*/
   }
   else  /* not weak */
     traversestrongtable(g, h);
@@ -784,7 +788,10 @@ static void checkSizes (lua_State *L, global_State *g) {
   }
 }
 
-
+/*
+从tobefnz中取出第一个对象，
+把对象从tobefnz链表上移回到allgc链表，重置FINALIZEDBIT标记，这样就可以重新绑定元表，回到finobj链表上
+*/
 static GCObject *udata2finalize (global_State *g) {
   GCObject *o = g->tobefnz;  /* get first element */
   lua_assert(tofinalize(o));
@@ -877,6 +884,7 @@ static GCObject **findlast (GCObject **p) {
 ** move all unreachable objects (or 'all' objects) that need
 ** finalization from list 'finobj' to list 'tobefnz' (to be finalized)
 */
+/*把finobj链表中的白对象移到tobefnz链表上，后面会遍历tobefnz的对象，执行它们的gc元方法*/
 static void separatetobefnz (global_State *g, int all) {
   GCObject *curr;
   GCObject **p = &g->finobj;
@@ -899,6 +907,7 @@ static void separatetobefnz (global_State *g, int all) {
 ** if object 'o' has a finalizer, remove it from 'allgc' list (must
 ** search the list to find it) and link it in 'finobj' list.
 */
+/*把那些带gc元方法的对象从allgc链表移到finobj链表*/
 void luaC_checkfinalizer (lua_State *L, GCObject *o, Table *mt) {
   global_State *g = G(L);
   if (tofinalize(o) ||                 /* obj. is already marked... */
@@ -956,6 +965,7 @@ static void setpause (global_State *g) {
 ** not need to skip objects created between "now" and the start of the
 ** real sweep.
 */
+/*从allgc开始往后清扫，因为新对象都是加在allgc上(之前)的，所以往后清扫的话就可以不用忽略那些在当前时间点与真正清扫时间点之间创建的那些对象。*/
 static void entersweep (lua_State *L) {
   global_State *g = G(L);
   g->gcstate = GCSswpallgc;
@@ -1020,7 +1030,7 @@ static l_mem atomic (lua_State *L) {
   clearvalues(g, g->weak, origweak);
   clearvalues(g, g->allweak, origall);
   luaS_clearcache(g);
-  g->currentwhite = cast_byte(otherwhite(g));  /* flip current white */
+  g->currentwhite = cast_byte(otherwhite(g));  /* flip current white */ /*翻转后，那些被标记为白的对象就会被判断为死亡，因为和当前白不相同。*/
   work += g->GCmemtrav;  /* complete counting */
   return work;  /* estimate of memory marked by 'atomic' */
 }
@@ -1047,15 +1057,15 @@ static lu_mem singlestep (lua_State *L) {
   switch (g->gcstate) {
     case GCSpause: {
       g->GCmemtrav = g->strt.size * sizeof(GCObject*);
-      restartcollection(g);
+      restartcollection(g);     //标记所有可达的对象。结束后所有对象都正确地标记上了黑白灰
       g->gcstate = GCSpropagate;
       return g->GCmemtrav;
     }
     case GCSpropagate: {
       g->GCmemtrav = 0;
       lua_assert(g->gray);
-      propagatemark(g);
-       if (g->gray == NULL)  /* no more gray objects? */
+      propagatemark(g);     //处理一个灰对象
+       if (g->gray == NULL)  /* no more gray objects? */    /*要处理完所有的灰对象*/
         g->gcstate = GCSatomic;  /* finish propagate phase */
       return g->GCmemtrav;  /* memory traversed in this step */
     }

@@ -3,6 +3,7 @@
 ** 'ctype' functions for Lua
 ** See Copyright Notice in lua.h
 */
+/*已看完*/
 
 #ifndef lctype_h
 #define lctype_h
@@ -18,7 +19,7 @@
 
 #if !defined(LUA_USE_CTYPE)
 
-#if 'A' == 65 && '0' == 48
+#if 'A' == 65 && '0' == 48		/*如果是标准的ASCII码，那就用自己定义的表，这样在判断上可以更快。其它码的话就还是用c标准里面的ctype函数*/
 /* ASCII case: can use its own tables; faster and fixed */
 #define LUA_USE_CTYPE	0
 #else
@@ -63,6 +64,11 @@
 
 /*
 ** this 'ltolower' only works for alphabetic characters
+*/
+/*
+大写字母与小写字母的差值刚好是32，它们两者在二进制上的区别就是第6位不同，那'A' ^ 'a'就可以得出一个mask（这里是0010 0000），可以可方便转换大小写。
+当一个字母和mask进行或运算时，那就是强制把第6位变成1，结果就是小写字母。
+当一个字母和mask的取反（即1101 1111）进行与运算时，那就是强制把第6位变成0，结果就是大写字母。
 */
 #define ltolower(c)	((c) | ('A' ^ 'a'))
 

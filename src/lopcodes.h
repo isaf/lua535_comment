@@ -15,7 +15,7 @@
   All instructions have an opcode in the first 6 bits.
   Instructions can have the following fields:
 	'A' : 8 bits
-	'B' : 9 bits
+	'B' : 9 bits    真实数据其实是8位，第9位是个标记位，用来标记数据是从常量表取还是从寄存器取。
 	'C' : 9 bits
 	'Ax' : 26 bits ('A', 'B', and 'C' together)
 	'Bx' : 18 bits ('B' and 'C' together)

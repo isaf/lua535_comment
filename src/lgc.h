@@ -57,7 +57,7 @@
 ** still-black objects. The invariant is restored when sweep ends and
 ** all objects are white again.
 */
-
+/*是否为gc稳定阶段（非清扫阶段）*/
 #define keepinvariant(g)	((g)->gcstate <= GCSatomic)
 
 
@@ -91,14 +91,14 @@
 
 #define tofinalize(x)	testbit((x)->marked, FINALIZEDBIT)
 
-#define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
-#define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow)))
-#define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
+#define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)	//作用：取另一种白的数据
+#define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow)))	//作用：判断某个标记是否为死。m和ow相同时表示死了
+#define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)	//作用：判断某个值是否已死
 
-#define changewhite(x)	((x)->marked ^= WHITEBITS)
+#define changewhite(x)	((x)->marked ^= WHITEBITS)		//作用：反转marked的前两位
 #define gray2black(x)	l_setbit((x)->marked, BLACKBIT)
 
-#define luaC_white(g)	cast(lu_byte, (g)->currentwhite & WHITEBITS)
+#define luaC_white(g)	cast(lu_byte, (g)->currentwhite & WHITEBITS)	//作用：取当前白的数值。0号白值为1，1号白值为2
 
 
 /*
@@ -119,6 +119,16 @@
 	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ?  \
 	luaC_barrier_(L,obj2gco(p),gcvalue(v)) : cast_void(0))
 
+/*
+Lua的GC有以下恒定条件(Invariants)：
+1.所有被根集引用的对象要么是黑色，要么是灰色的。
+2.黑色的对象不可能指向白色的。
+当以上条件被打破时，需要用barrier恢复。
+比如当一个黑对象指向白对象时，要调用luaC_barrierback把黑对象变成灰，
+或者调用luaC_barrier把白对象变成灰或黑。
+这两种方式根据经验选择，如果是table相关的set操作，那就用luaC_barrierback，
+如果是给对象设置一个 metatable ，那就用luaC_barrier。
+*/
 #define luaC_barrierback(L,p,v) (  \
 	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ? \
 	luaC_barrierback_(L,p) : cast_void(0))

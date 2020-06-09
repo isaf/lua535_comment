@@ -723,7 +723,9 @@ void luaV_finishOp (lua_State *L) {
 /*
 ** some macros for common tasks in 'luaV_execute'
 */
-
+/*
+RA，RB这些宏是获得寄存器的数据，base就是当前函数的寄存器在栈中的起始地址
+*/
 
 #define RA(i)	(base+GETARG_A(i))
 #define RB(i)	check_exp(getBMode(GET_OPCODE(i)) == OpArgR, base+GETARG_B(i))

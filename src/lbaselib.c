@@ -3,6 +3,7 @@
 ** Basic library
 ** See Copyright Notice in lua.h
 */
+/*已看完*/
 
 #define lbaselib_c
 #define LUA_LIB
@@ -55,8 +56,8 @@ static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
     return NULL;
   do {
     int digit = (isdigit((unsigned char)*s)) ? *s - '0'
-                   : (toupper((unsigned char)*s) - 'A') + 10;
-    if (digit >= base) return NULL;  /* invalid numeral */
+                   : (toupper((unsigned char)*s) - 'A') + 10;       /*字母是用来表示大于等于10的数的，比如A表示10，B表示11，所以这里要加上10*/
+    if (digit >= base) return NULL;  /* invalid numeral */  /*一共有26个字母，所以字母的表示范围为10至35，决定了base的最大值为36*/
     n = n * base + digit;
     s++;
   } while (isalnum((unsigned char)*s));
@@ -89,7 +90,7 @@ static int luaB_tonumber (lua_State *L) {
     luaL_checktype(L, 1, LUA_TSTRING);  /* no numbers as strings */
     s = lua_tolstring(L, 1, &l);
     luaL_argcheck(L, 2 <= base && base <= 36, 2, "base out of range");
-    if (b_str2int(s, (int)base, &n) == s + l) {
+    if (b_str2int(s, (int)base, &n) == s + l) {     /*用来判断数字是否为一个10进制整数，像0x11，11.0这种都属于非法*/
       lua_pushinteger(L, n);
       return 1;
     }  /* else not a number */
@@ -256,7 +257,7 @@ static int ipairsaux (lua_State *L) {
 */
 static int luaB_ipairs (lua_State *L) {
 #if defined(LUA_COMPAT_IPAIRS)
-  return pairsmeta(L, "__ipairs", 1, ipairsaux);
+  return pairsmeta(L, "__ipairs", 1, ipairsaux);    /*为什么__ipairs被废弃了？*/
 #else
   luaL_checkany(L, 1);
   lua_pushcfunction(L, ipairsaux);  /* iteration function */
@@ -364,7 +365,7 @@ static int luaB_dofile (lua_State *L) {
   lua_settop(L, 1);
   if (luaL_loadfile(L, fname) != LUA_OK)
     return lua_error(L);
-  lua_callk(L, 0, LUA_MULTRET, 0, dofilecont);
+  lua_callk(L, 0, LUA_MULTRET, 0, dofilecont);      /*为什么不用lua_pcallk？这里的continue function有啥作用？*/
   return dofilecont(L, 0, 0);
 }
 
